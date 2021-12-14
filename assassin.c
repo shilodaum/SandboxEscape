@@ -79,44 +79,43 @@ void get_syscall()
 }
 void change_syscall()
 {
-    long status;
+    sleep(1);
+
+    int status;
     struct user_regs_struct regs; 
     long syscall; 
 
     pid_t beauty = find_pid();
     printf("The tracee id is %d\n", beauty);
 
-    status = ptrace(PTRACE_ATTACH, beauty, NULL, NULL); 
-    printf("Attach status is %ld\n", status);
-    waitpid(beauty, 0, 0);
-
-    status = ptrace(PTRACE_SYSCALL, beauty, 0, 0);
-    printf("Syscall returned with %ld\n", status); 
-    waitpid(beauty, 0, 0);
+    status = ptrace(PTRACE_ATTACH, beauty, 0, 0); 
+    printf("Attach status is %d\n", status);
     
+    waitpid(beauty, 0, 0);
+    status = ptrace(PTRACE_SYSCALL, beauty, 0, 0);
+    printf("Syscall status is %d\n", status); 
+    
+    waitpid(beauty, 0, 0);
     ptrace(PTRACE_GETREGS, beauty, 0, &regs);
     syscall = regs.orig_rax; 
-    printf("%ld (%ld, %ld, %ld, %ld, %ld, %ld)\n", syscall,
-        (long)regs.rdi, (long)regs.rsi, (long)regs.rdx,
-        (long)regs.r10, (long)regs.r8,  (long)regs.r9);
+    printf("syscall code: %ld with rdi: %ld and rsi: %ld\n", syscall,(long)regs.rdi,(long)regs.rsi);
+    
+    regs.orig_rax=2;
+    regs.rax=2;
+    // regs.rdi = 54;
+    // regs.rsi = 140737150243488;
 
-    printf("before set\n");
-    regs.orig_rax=60;
-    regs.rdi = 0;
-    status=ptrace(PTRACE_SETREGS, beauty, 0, &regs);
-    printf("Setregs returned with %ld\n", status);
-     
-    status = ptrace(PTRACE_CONT, beauty, 0, 0);
-    printf("Continue returned with %ld\n", status);
-
-
-    status = ptrace(PTRACE_SYSCALL, beauty, 0, 0); 
+    status=ptrace(PTRACE_SETREGS, beauty, NULL, &regs);
+    printf("Setregs status is %d\n", status); 
+    
+    status=ptrace(PTRACE_SYSCALL, beauty, 0, 0);
+    printf("syscall status is %d\n", status);
+    waitpid(beauty,0, 0);
     ptrace(PTRACE_GETREGS, beauty, 0, &regs);
-   syscall = regs.orig_rax; 
-  printf("%ld (%ld, %ld, %ld, %ld, %ld, %ld)\n", syscall,
-       (long)regs.rdi, (long)regs.rsi, (long)regs.rdx,
-       (long)regs.r10, (long)regs.r8,  (long)regs.r9);
-   // ptrace(PTRACE_CONT, beauty, 0, 0);
-    ptrace(PTRACE_DETACH, beauty, 0, 0);
+    syscall = regs.rax; 
+    printf("syscall code: %ld with rdi: %ld and rsi: %ld\n", syscall,(long)regs.rdi,(long)regs.rsi);
+    sleep(3);
 
+    status=ptrace(PTRACE_DETACH, beauty, 0, 0);
+    printf("Detach status is %d\n", status);
 }

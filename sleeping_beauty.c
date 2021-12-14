@@ -16,6 +16,7 @@ int main()
         {
             sleep(1);
             sleep(1);
+            //nanosleep(1);
             printf("%d\n", i);
         }
    // }
