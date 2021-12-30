@@ -8,11 +8,7 @@
 #include <sys/reg.h>
 int main()
 {
-    int i=0;
-        for ( ; ;++i ){
-            sleep(1);
-            printf("hi %d\n",i);
-        }
+    sleep(9999999);
         
 
     

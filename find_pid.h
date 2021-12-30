@@ -18,9 +18,19 @@ int find_pid()
     //printf("%s", pid );
     //return 0;
 }
-/*int main()
-{
-    int pid = find_pid();
-    printf("%d\n", pid);
-    return 0;
-}*/
+int find_pid_speaking()
+{   
+    char pid[10];
+    FILE * file;
+    file = popen("pgrep speaking_beauty", "r");
+    fgets(pid, MAX_LENGTH, file);
+    return atoi(pid);
+    //printf("%s", pid );
+    //return 0;
+}
+// int main()
+// {
+//     // int pid = find_pid();
+//     // printf("%d\n", pid);
+//     return 0;
+// }

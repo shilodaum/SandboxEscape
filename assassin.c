@@ -13,11 +13,12 @@
 #include <fcntl.h>
 #include <math.h>
 #include <string.h>
-#include "find_pid.c"
+#include "find_pid.h"
 //#include <linux/user.h>   /* For constants ORIG_EAX etc */
 
 #define MAX_MMAPS_LINE 1000
 #define MAX_DATA_COPY 1000
+#define INJECT_SIZE 16
 
 
 char* message="Hacked by epipen\n\0";
@@ -42,8 +43,11 @@ void inject_code_and_cont(pid_t beauty);
 
 int main()
 {
-    pid_t beauty = find_pid();
+    pid_t beauty = find_pid_speaking();
     inject_code_and_cont(beauty);
+
+    // pid_t beauty = find_pid();
+    // inject_code_and_cont(beauty);
     return 0;
 }
 
@@ -301,8 +305,8 @@ long get_exec_address_maps(pid_t beauty)
 
 
 void ptraceRead(int pid, unsigned long long addr, char *data, int len) {
-long word = 0;
-int i = 0;
+    long word = 0;
+    int i = 0;
 
 	for (i=0; i < len; i+=sizeof(word), word=0) {
 		if ((word = ptrace(PTRACE_PEEKTEXT, pid, addr + i, NULL)) == -1) {;
@@ -356,7 +360,7 @@ void inject_code_and_kill(pid_t beauty)
 
 	ptraceRead(beauty, inject_addr, oldcode, MAX_DATA_COPY);
 
-	ptraceWrite(beauty, inject_addr, (&inject_syscall), 32);
+	ptraceWrite(beauty, inject_addr, (&inject_syscall), INJECT_SIZE);
 
 	regs.rip = inject_addr;
 
@@ -391,7 +395,6 @@ void inject_code_and_kill(pid_t beauty)
     printf("Detach status is %d\n", status);
 }
 
-
 void inject_code_and_cont(pid_t beauty)
 {
     int i=0;
@@ -419,7 +422,7 @@ void inject_code_and_cont(pid_t beauty)
 
 	ptraceRead(beauty, inject_addr, oldcode, MAX_DATA_COPY);
 
-	ptraceWrite(beauty, inject_addr, (&inject_syscall), 32);
+	ptraceWrite(beauty, inject_addr, (&inject_syscall), INJECT_SIZE);
 
 	regs.rip = inject_addr;
 
@@ -439,16 +442,20 @@ void inject_code_and_cont(pid_t beauty)
     status=ptrace(PTRACE_SETREGS, beauty, NULL, &regs);
     printf("Setregs status is %d\n", status); 
         
-    status=ptrace(PTRACE_CONT, beauty, 0, 0);
+    //status=ptrace(PTRACE_CONT, beauty, 0, 0);
 
+    status=ptrace(PTRACE_SYSCALL, beauty, 0, 0);
     waitpid(beauty,0,0);
-
+    status=ptrace(PTRACE_SYSCALL, beauty, 0, 0);
+    waitpid(beauty,0,0);
+    //is it freezed
+    
     status=ptrace(PTRACE_SETREGS, beauty, NULL, &old_regs);
     
-    ptraceWrite(beauty, inject_addr, oldcode, 32);
+    ptraceWrite(beauty, inject_addr, oldcode, INJECT_SIZE);
     ptraceWrite(beauty,message_address,message_old_data,text_len);
 
-    sleep(2);
+    //sleep(2);
     status=ptrace(PTRACE_DETACH, beauty, 0, 0);
     printf("Detach status is %d\n", status);
 }
