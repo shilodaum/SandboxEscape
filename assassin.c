@@ -34,7 +34,7 @@ void change_print(pid_t);
 
 long get_address_maps(pid_t);
 long get_exec_address_maps(pid_t);
-void ptraceRead(int, unsigned long long, void*, int);
+void ptraceRead(int, unsigned long long, char*, int);
 void ptraceWrite(int, unsigned long long, void*, int);
 void inject_syscall(void);
 void inject_code_and_kill(pid_t);
@@ -288,7 +288,7 @@ long get_exec_address_maps(pid_t beauty)
             next_line=strchr(buffer,'\n');
             *next_line='\0';
             i+=strlen(buffer);
-            sscanf(buffer,"%lx-%*lx %s %*s",&addr,perms);
+            sscanf(buffer,"%lx-%*x %s %*s",&addr,perms);
             lseek(fd,i+1,SEEK_SET);
             if(perms[2]=='x')
             {
@@ -300,17 +300,16 @@ long get_exec_address_maps(pid_t beauty)
 }
 
 
-void ptraceRead(int pid, unsigned long long addr, void *data, int len) {
+void ptraceRead(int pid, unsigned long long addr, char *data, int len) {
 long word = 0;
 int i = 0;
-char *ptr = (char *)data;
 
 	for (i=0; i < len; i+=sizeof(word), word=0) {
 		if ((word = ptrace(PTRACE_PEEKTEXT, pid, addr + i, NULL)) == -1) {;
-			printf("[!] Error reading process memory\n");
+			printf("Error reading process memory\n");
 			exit(1);
 		}
-		ptr[i] = word;
+		data[i] = word;
 	}
 }
 
@@ -336,16 +335,13 @@ void inject_syscall(void) {
 void inject_code_and_kill(pid_t beauty)
 {
     int i=0;
-    
     int status;
-    char* str="hey there";
     struct user_regs_struct old_regs, regs; 
     long syscall; 
     long long fword;
-    char * filename;
     long inject_addr;
-    unsigned char * oldcode = (unsigned char *)malloc(9076);
-    //pid_t beauty = find_pid();
+    char oldcode[MAX_DATA_COPY];
+
     printf("The tracee id is %d\n", beauty);
 
     status = ptrace(PTRACE_ATTACH, beauty, 0, 0); 
@@ -358,7 +354,7 @@ void inject_code_and_kill(pid_t beauty)
    
 	inject_addr = get_exec_address_maps(beauty);
 
-	ptraceRead(beauty, inject_addr, oldcode, 9076);
+	ptraceRead(beauty, inject_addr, oldcode, MAX_DATA_COPY);
 
 	ptraceWrite(beauty, inject_addr, (&inject_syscall), 32);
 
@@ -407,8 +403,8 @@ void inject_code_and_cont(pid_t beauty)
     long syscall; 
     long long fword;
     long inject_addr;
-    unsigned char * oldcode = (unsigned char *)malloc(MAX_DATA_COPY);
-    //pid_t beauty = find_pid();
+    char oldcode [MAX_DATA_COPY];
+
     printf("The tracee id is %d\n", beauty);
 
     status = ptrace(PTRACE_ATTACH, beauty, 0, 0); 
